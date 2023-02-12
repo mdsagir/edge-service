@@ -1,28 +1,35 @@
 package com.polarbook.edgeservice.config;
 
+import reactor.core.publisher.Mono;
+
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository;
-import org.springframework.security.oauth2.client.web.server.WebSessionServerOAuth2AuthorizedClientRepository;
-import org.springframework.security.web.server.csrf.CsrfToken;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.client.oidc.web.server.logout.OidcClientInitiatedServerLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository;
+import org.springframework.security.oauth2.client.web.server.WebSessionServerOAuth2AuthorizedClientRepository;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint;
 import org.springframework.security.web.server.authentication.logout.ServerLogoutSuccessHandler;
 import org.springframework.security.web.server.csrf.CookieServerCsrfTokenRepository;
+import org.springframework.security.web.server.csrf.CsrfToken;
+import org.springframework.security.web.server.csrf.XorServerCsrfTokenRequestAttributeHandler;
 import org.springframework.web.server.WebFilter;
-import reactor.core.publisher.Mono;
 
-@EnableWebFluxSecurity
+@Configuration
 public class SecurityConfig {
 
     @Bean
-    SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http, ReactiveClientRegistrationRepository clientRegistrationRepository) {
+    ServerOAuth2AuthorizedClientRepository authorizedClientRepository() {
+        return new WebSessionServerOAuth2AuthorizedClientRepository();
+    }
+
+    @Bean
+    SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http, ReactiveClientRegistrationRepository clientRegistrationRepository) {
         return http
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers("/", "/*.css", "/*.js", "/favicon.ico").permitAll()
@@ -33,13 +40,10 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new HttpStatusServerEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .oauth2Login(Customizer.withDefaults())
                 .logout(logout -> logout.logoutSuccessHandler(oidcLogoutSuccessHandler(clientRegistrationRepository)))
-                .csrf(csrf -> csrf.csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse()))
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(new XorServerCsrfTokenRequestAttributeHandler()::handle))
                 .build();
-    }
-
-    @Bean
-    ServerOAuth2AuthorizedClientRepository authorizedClientRepository() {
-        return new WebSessionServerOAuth2AuthorizedClientRepository();
     }
 
     private ServerLogoutSuccessHandler oidcLogoutSuccessHandler(ReactiveClientRegistrationRepository clientRegistrationRepository) {
@@ -59,4 +63,5 @@ public class SecurityConfig {
             return chain.filter(exchange);
         };
     }
+
 }

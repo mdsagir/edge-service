@@ -10,10 +10,10 @@ import java.security.Principal;
 public class RateLimiterConfig {
 
     @Bean
-    public KeyResolver keyResolver() {
-        return exchange -> exchange.getPrincipal().
-                map(Principal::getName).
-                defaultIfEmpty("anonymous");
+    KeyResolver keyResolver() {
+        return exchange -> exchange.getPrincipal()
+                .map(Principal::getName)
+                .defaultIfEmpty("anonymous");
     }
 
 }

@@ -3,6 +3,7 @@ package com.polarbook.edgeservice.user;
 import java.util.List;
 
 import com.polarbook.edgeservice.config.SecurityConfig;
+import com.polarbook.edgeservice.web.UserController;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
